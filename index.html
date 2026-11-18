@@ -23,7 +23,11 @@ const vp=$('viewport'),renderer=new THREE.WebGLRenderer({antialias:true,alpha:tr
 const scene=new THREE.Scene();scene.background=new THREE.Color('#0c1a20');const camera=new THREE.PerspectiveCamera(42,1,.001,1000);camera.position.set(4,2.5,5);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.5;controls.maxDistance=30;
 scene.add(new THREE.HemisphereLight(0xcfeaff,0x48372b,2.4));let light=new THREE.DirectionalLight(0xffffff,2.4);light.position.set(4,7,6);scene.add(light);let fill=new THREE.DirectionalLight(0xb4cddd,1.4);fill.position.set(-5,0,-4);scene.add(fill);
-const modelGroup=new THREE.Group();scene.add(modelGroup);let model=null;const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2(),tempVec=new THREE.Vector3();let placing=false,pending=null;
+const modelGroup=new THREE.Group();scene.add(modelGroup);let model=null;const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2(),tempVec=new THREE.Vector3();
+// Occlusion checks: a hotspot is hidden whenever timber lies between it and the camera.
+const occlusionRaycaster=new THREE.Raycaster();
+const markerWorld=new THREE.Vector3(),markerRayDirection=new THREE.Vector3(),projectedPoint=new THREE.Vector3();
+let placing=false,pending=null;
 const key='vic1-hotspots-local-v1';let hotspots=Array.isArray(cfg.hotspots)?[...cfg.hotspots]:[];try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(cached))hotspots=cached;}catch{}
 let markers=[];
 function setStatus(msg,error=false){$('loading').textContent=msg;$('loading').classList.toggle('error',error);}
@@ -120,5 +124,52 @@ async function load(){
     }catch(e){console.error('VIC1 viewer geometry error',e);setStatus('OBJ downloaded, but model processing failed: '+String(e.message||e),true);}
   },xhr=>{if(xhr.total)setStatus(`Loading OBJ: ${Math.round(xhr.loaded/xhr.total*100)}%`);},err=>{setStatus('Cannot load OBJ. Check the public URL and Cloudflare R2 CORS. '+String(err?.message||err),true);console.error(err);});
 }
-function frame(){requestAnimationFrame(frame);controls.update();const w=vp.clientWidth,h=vp.clientHeight;for(let i=0;i<markers.length;i++){const marker=markers[i],p=marker.hotspot.position;if(!Array.isArray(p)||p.length!==3){marker.classList.add('offscreen');continue;}tempVec.set(...p);modelGroup.localToWorld(tempVec);tempVec.project(camera);const visible=tempVec.z<1&&tempVec.z>-1&&Math.abs(tempVec.x)<=1&&Math.abs(tempVec.y)<=1;marker.classList.toggle('offscreen',!visible);if(visible){marker.style.left=(tempVec.x*.5+.5)*w+'px';marker.style.top=(-tempVec.y*.5+.5)*h+'px';}}renderer.render(scene,camera)}frame();load();
+// Since 3D markers are HTML elements, Three.js depth testing does not hide them automatically.
+// Cast a camera-to-hotspot ray and compare its first timber hit with the hotspot distance.
+// This works for already-saved hotspots: no extra face-normal data or new JSON required.
+function isOccluded(worldPoint){
+  if(!model)return false;
+  markerRayDirection.subVectors(worldPoint,camera.position);
+  const targetDistance=markerRayDirection.length();
+  if(targetDistance < 1e-8)return false;
+  markerRayDirection.multiplyScalar(1/targetDistance);
+  occlusionRaycaster.set(camera.position,markerRayDirection);
+  // Allow small floating-point / OBJ surface-position differences, but not an entire timber thickness.
+  const surfaceTolerance=Math.max(0.018,targetDistance*0.0015);
+  occlusionRaycaster.near=0;
+  occlusionRaycaster.far=Math.max(0,targetDistance-surfaceTolerance);
+  const hits=occlusionRaycaster.intersectObject(modelGroup,true);
+  return hits.length>0;
+}
+let lastOcclusionCheck=-1;
+function frame(time=0){
+  requestAnimationFrame(frame);
+  controls.update();
+  camera.updateMatrixWorld();
+  modelGroup.updateWorldMatrix(true,true);
+  const w=vp.clientWidth,h=vp.clientHeight;
+  // Large CT-derived OBJ meshes can be expensive to raycast. Check at up to ~10Hz,
+  // but update the 2D marker positions on every animation frame for smooth tracking.
+  const refreshDepth=time-lastOcclusionCheck>100;
+  if(refreshDepth)lastOcclusionCheck=time;
+  for(let i=0;i<markers.length;i++){
+    const marker=markers[i],p=marker.hotspot.position;
+    if(!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)){
+      marker.classList.add('offscreen');continue;
+    }
+    markerWorld.set(...p);
+    modelGroup.localToWorld(markerWorld);
+    projectedPoint.copy(markerWorld).project(camera);
+    const onscreen=projectedPoint.z>-1&&projectedPoint.z<1&&Math.abs(projectedPoint.x)<=1&&Math.abs(projectedPoint.y)<=1;
+    if(refreshDepth&&onscreen)marker._occluded=isOccluded(markerWorld);
+    const visible=onscreen&&!marker._occluded;
+    marker.classList.toggle('offscreen',!visible);
+    if(visible){
+      marker.style.left=(projectedPoint.x*.5+.5)*w+'px';
+      marker.style.top=(-projectedPoint.y*.5+.5)*h+'px';
+    }
+  }
+  renderer.render(scene,camera);
+}
+frame();load();
 </script></body></html>

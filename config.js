@@ -6,5 +6,31 @@ window.VIC1_CONFIG = {
   objUrl: 'https://pub-e39fee6f3f244227a4840cf2fb01d645.r2.dev/Model_3.obj',
   rtiViewerUrl: 'https://vic1-rti-viewer.vercel.app/',
   ctViewerUrl: 'https://historic-timber-ct-viewer-j4m8.vercel.app/',
-  hotspots: []
+  hotspots: [
+  {
+    "title": "Historic surface coating",
+    "note": "A dark surface layer was observed on part of VIC1; its composition matches a historic protective coating.",
+    "imageUrl": "",
+    "imageCaption": "",
+    "media": "RTI_5",
+    "position": [
+      0.3164853,
+      1.1652185,
+      1.0185013
+    ],
+    "anchor": {
+      "meshIndex": 0,
+      "localPosition": [
+        81.1739731,
+        116.3544251,
+        99.0967304
+      ]
+    },
+    "normal": [
+      -0.29481,
+      0.06129,
+      0.95359
+    ]
+  }
+]
 };

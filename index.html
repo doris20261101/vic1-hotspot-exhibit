@@ -12,7 +12,7 @@
 <body><header><h1 id="title">VIC1 · HMS Victory</h1><p id="subtitle">Explore historical timber across imaging methods.</p></header>
 <main><section class="panel"><div class="viewer" id="viewport"><div id="loading" class="overlay">Enter your public OBJ URL in config.js to begin.</div></div><div class="toolbar"><button id="reset">Reset camera</button><button id="place" disabled hidden>Place hotspot: OFF</button><button id="ct">Open CT Viewer ↗</button><button id="showEditor" hidden>Curator tools</button></div><p class="small" style="margin:0 14px 14px">Drag to rotate · Scroll to zoom · Click a marker to read an annotation. Curator mode: click the timber surface to place a marker.</p></section>
 <aside class="panel"><h2 id="detailTitle">Choose a hotspot</h2><p id="detailText">Select a marker to see its associated RTI surface or micro-CT viewer.</p><figure id="hotspotFigure" class="hotspot-figure" hidden><img id="hotspotImage" alt="Hotspot research image" loading="lazy"><figcaption id="hotspotCaption"></figcaption><p id="hotspotImageError" class="hotspot-image-error" hidden></p></figure><section id="interactiveSection"><div id="rtiFrameHolder"></div><p id="interactiveEmpty" class="small">Set rtiViewerUrl to your public interactive RTI viewer page in config.js.</p></section><section id="ctSection" hidden><iframe id="ctFrame" title="Interactive micro-CT viewer" loading="lazy"></iframe><p class="small">If the CT viewer does not appear here, open it in a new tab. Some sites restrict embedded viewers.</p><p><a id="ctExternal" class="button" target="_blank" rel="noopener noreferrer">Open full CT Viewer ↗</a></p></section><p class="small">Select a hotspot to open its assigned Outboard RTI, Inboard RTI, CT Viewer, or image and notes.</p></aside></main>
-<section id="editor" class="editor" hidden><h2>Curator tools · hotspots <small style="font-size:12px;color:#aad8cc">v2026.11.18 · four media options</small></h2><p class="status" id="publishStatus">Published hotspots load from config.js.</p><p class="small">Enable placement, click the timber surface, then complete these fields. Marker positions are stored relative to the auto-scaled model. Replacing the OBJ with different geometry may shift markers.</p><div class="field-2"><div><label for="hotName">Hotspot title</label><input id="hotName" placeholder="e.g. Surface coating or Internal degradation"></div><div><label for="hotType">Default media — choose what opens when this hotspot is clicked</label><select id="hotType" name="hotType"><option value="RTI_5">Outboard Surface · Interactive RTI (RTI_5)</option><option value="RTI_2">Inboard Surface · Interactive RTI (RTI_2)</option><option value="CT">Micro-CT Viewer · Internal degradation</option><option value="notes">Image and notes only · No RTI/CT</option></select><p class="hint">Four choices: Outboard RTI, Inboard RTI, Micro-CT, or image/notes only.</p></div></div><label for="hotNote">Research note</label><textarea id="hotNote" rows="3" placeholder="Describe the observed surface feature and interpretation separately"></textarea><label for="hotImage">Image URL (optional)</label><input id="hotImage" type="url" placeholder="https://.../SEM-image.jpg or ./images/SEM-image.jpg"><p class="hint">Use a public https image URL, or upload images into your GitHub repository and use ./images/filename.jpg. Supports JPG, PNG and WebP.</p><label for="hotCaption">Image caption / credit (optional)</label><input id="hotCaption" placeholder="e.g. SEM micrograph of cell-wall thinning (author, year)"><p id="coordStatus" class="status">Click Place hotspot, then select a position on the model.</p><div class="row"><button id="saveHotspot" disabled>Save hotspot</button><button id="copyHotspots">Copy hotspot JSON</button><button id="clearLocal">Clear saved browser hotspots</button></div><p class="small">To publish to everyone: copy JSON, paste it as the <code>hotspots</code> array in <code>config.js</code>, Commit, and redeploy. Changes made here alone stay in this browser.</p><ul id="hotspotList" class="hotspot-list"></ul></section>
+<section id="editor" class="editor" hidden><h2>Curator tools · hotspots <small style="font-size:12px;color:#aad8cc">v2026.11.18 · four media options</small></h2><p class="status" id="publishStatus">Published hotspots load from config.js.</p><p class="small">Enable placement, click the timber surface, then complete these fields. New markers are anchored to the exact clicked mesh surface. Existing markers are compatible, but inaccurate old placements must be reselected. Replacing the OBJ with different geometry may shift markers.</p><div class="field-2"><div><label for="hotName">Hotspot title</label><input id="hotName" placeholder="e.g. Surface coating or Internal degradation"></div><div><label for="hotType">Default media — choose what opens when this hotspot is clicked</label><select id="hotType" name="hotType"><option value="RTI_5">Outboard Surface · Interactive RTI (RTI_5)</option><option value="RTI_2">Inboard Surface · Interactive RTI (RTI_2)</option><option value="CT">Micro-CT Viewer · Internal degradation</option><option value="notes">Image and notes only · No RTI/CT</option></select><p class="hint">Four choices: Outboard RTI, Inboard RTI, Micro-CT, or image/notes only.</p></div></div><label for="hotNote">Research note</label><textarea id="hotNote" rows="3" placeholder="Describe the observed surface feature and interpretation separately"></textarea><label for="hotImage">Image URL (optional)</label><input id="hotImage" type="url" placeholder="https://.../SEM-image.jpg or ./images/SEM-image.jpg"><p class="hint">Use a public https image URL, or upload images into your GitHub repository and use ./images/filename.jpg. Supports JPG, PNG and WebP.</p><label for="hotCaption">Image caption / credit (optional)</label><input id="hotCaption" placeholder="e.g. SEM micrograph of cell-wall thinning (author, year)"><p id="coordStatus" class="status">Click Place hotspot, then select a position on the model.</p><div class="row"><button id="saveHotspot" disabled>Save hotspot</button><button id="copyHotspots">Copy hotspot JSON</button><button id="clearLocal">Clear saved browser hotspots</button></div><p class="small">To publish to everyone: copy JSON, paste it as the <code>hotspots</code> array in <code>config.js</code>, Commit, and redeploy. Changes made here alone stay in this browser.</p><ul id="hotspotList" class="hotspot-list"></ul></section>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -45,14 +45,25 @@ const modelGroup=new THREE.Group();scene.add(modelGroup);let model=null;const ra
 // Occlusion checks: a hotspot is hidden whenever timber lies between it and the camera.
 const markerWorld=new THREE.Vector3(),markerDirection=new THREE.Vector3(),cameraDirection=new THREE.Vector3(),projectedPoint=new THREE.Vector3(),savedNormal=new THREE.Vector3();
 // Fast visibility based on stored surface normals; avoids expensive whole-mesh raycasts.
-let placing=false,pending=null,pendingNormal=null;
+let placing=false,pending=null,pendingNormal=null,pendingAnchor=null;
+let modelMeshes=[]; // Stable OBJ traversal order for surface-attached hotspot anchors.
 const key='vic1-hotspots-local-v1';const publishedHotspots=Array.isArray(cfg.hotspots)?cfg.hotspots:[];let hotspots=publishedHotspots.map(h=>({...h}));if(editorMode){try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(cached))hotspots=cached;}catch{}}
 let markers=[];
 function setStatus(msg,error=false){$('loading').textContent=msg;$('loading').classList.toggle('error',error);}
 function size(){let w=vp.clientWidth,h=vp.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}window.addEventListener('resize',size);size();
 function resetCamera(){camera.position.set(4.9,3.15,7);controls.target.set(0,0,0);controls.update()}$('reset').onclick=resetCamera;
 function modelPositionClick(ev){const rect=renderer.domElement.getBoundingClientRect();pointer.x=((ev.clientX-rect.left)/rect.width)*2-1;pointer.y=-((ev.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(pointer,camera);return raycaster.intersectObject(modelGroup,true)[0]}
-renderer.domElement.addEventListener('click',ev=>{if(!editorMode||!placing||!model)return;const hit=modelPositionClick(ev);if(!hit){$('coordStatus').textContent='Click the actual timber surface, not the background.';return;}pending=modelGroup.worldToLocal(hit.point.clone());
+let draggingStart=null;
+renderer.domElement.addEventListener('pointerdown',ev=>{draggingStart={x:ev.clientX,y:ev.clientY};});
+renderer.domElement.addEventListener('click',ev=>{if(!editorMode||!placing||!model)return;
+if(draggingStart&&Math.hypot(ev.clientX-draggingStart.x,ev.clientY-draggingStart.y)>5)return;const hit=modelPositionClick(ev);if(!hit){$('coordStatus').textContent='Click the actual timber surface, not the background.';return;}pending=modelGroup.worldToLocal(hit.point.clone());
+// Anchor to the ACTUAL intersected mesh, not only a projected screen coordinate.
+// localPosition follows the OBJ mesh's own transform and remains attached through camera movement.
+const meshIndex=modelMeshes.indexOf(hit.object);
+pendingAnchor=meshIndex>=0 ? {
+  meshIndex,
+  localPosition:hit.object.worldToLocal(hit.point.clone()).toArray().map(v=>Number(v.toFixed(7)))
+} : null;
 // Save the normal of the selected surface in modelGroup-local coordinates.
 // Three.js OBJ files sometimes have inward-facing normals, so orient it toward the camera at selection time.
 let n=hit.face?.normal?.clone() || new THREE.Vector3();
@@ -125,7 +136,7 @@ function refreshMarkers(){if(editorMode)$('publishStatus').textContent=`Publishe
 function saveLocal(){try{localStorage.setItem(key,JSON.stringify(hotspots))}catch{}}
 $('showEditor').onclick=()=>{if(!editorMode)return;$('editor').hidden=!$('editor').hidden;if(!$('editor').hidden)$('editor').scrollIntoView({behavior:'smooth',block:'nearest'});};
 $('place').onclick=()=>{if(!editorMode)return;placing=!placing;$('place').classList.toggle('active',placing);$('place').textContent=`Place hotspot: ${placing?'ON':'OFF'}`};
-$('saveHotspot').onclick=()=>{if(!editorMode)return;if(!pending)return;hotspots.push({title:$('hotName').value.trim()||`Hotspot ${hotspots.length+1}`,note:$('hotNote').value.trim(),imageUrl:$('hotImage').value.trim(),imageCaption:$('hotCaption').value.trim(),media:$('hotType').value,position:pending.toArray().map(x=>Number(x.toFixed(5))), ...(pendingNormal?{normal:pendingNormal}:{})});saveLocal();refreshMarkers();pending=null;pendingNormal=null;$('saveHotspot').disabled=true;$('coordStatus').textContent='Saved (including optional image). Select another position or export JSON.'};
+$('saveHotspot').onclick=()=>{if(!editorMode)return;if(!pending)return;hotspots.push({title:$('hotName').value.trim()||`Hotspot ${hotspots.length+1}`,note:$('hotNote').value.trim(),imageUrl:$('hotImage').value.trim(),imageCaption:$('hotCaption').value.trim(),media:$('hotType').value,position:pending.toArray().map(x=>Number(x.toFixed(7))), ...(pendingAnchor?{anchor:pendingAnchor}:{}), ...(pendingNormal?{normal:pendingNormal}:{})});saveLocal();refreshMarkers();pending=null;pendingNormal=null;pendingAnchor=null;$('saveHotspot').disabled=true;$('coordStatus').textContent='Saved (including optional image). Select another position or export JSON.'};
 $('copyHotspots').onclick=async()=>{if(!editorMode)return;const txt=JSON.stringify(hotspots,null,2);try{await navigator.clipboard.writeText(txt);$('coordStatus').textContent='Copied JSON. Paste into config.js hotspots.';}catch{$('coordStatus').textContent=txt}};
 $('clearLocal').onclick=()=>{if(!editorMode)return;localStorage.removeItem(key);hotspots=publishedHotspots.map(h=>({...h}));refreshMarkers();$('coordStatus').textContent='Local markers cleared.'};
 function geometryReport(obj){
@@ -182,6 +193,8 @@ async function load(){
       obj.scale.setScalar(scale);
       obj.position.copy(center).multiplyScalar(-scale);
       modelGroup.add(obj);
+      modelMeshes=[];obj.traverse(child=>{if(child.isMesh)modelMeshes.push(child)});
+      modelGroup.updateWorldMatrix(true,true);
       controls.target.set(0,0,0);
       const fitDistance=7;
       camera.position.set(fitDistance*.7,fitDistance*.45,fitDistance);
@@ -203,14 +216,27 @@ function frame(){
   controls.update();
   camera.updateMatrixWorld();
   modelGroup.updateWorldMatrix(true,true);
-  const w=vp.clientWidth,h=vp.clientHeight;
+  const vpRect=vp.getBoundingClientRect();
+  const canvasRect=renderer.domElement.getBoundingClientRect();
+  const w=canvasRect.width,h=canvasRect.height;
+  const offsetX=canvasRect.left-vpRect.left,offsetY=canvasRect.top-vpRect.top;
   for(let i=0;i<markers.length;i++){
     const marker=markers[i],hspot=marker.hotspot,p=hspot.position;
-    if(!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)){
+    if((!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)) && !(hspot.anchor&&Array.isArray(hspot.anchor.localPosition)&&hspot.anchor.localPosition.length===3)){
       marker.classList.add('offscreen');continue;
     }
-    markerWorld.set(...p);
-    modelGroup.localToWorld(markerWorld);
+    // Prefer a saved mesh-local anchor for precise model attachment.
+    // Earlier hotspots without anchors still use their original modelGroup-local coordinates.
+    const anchor=hspot.anchor;
+    const anchorMesh=anchor&&Number.isInteger(anchor.meshIndex)?modelMeshes[anchor.meshIndex]:null;
+    const anchored=anchorMesh && Array.isArray(anchor.localPosition) && anchor.localPosition.length===3 && anchor.localPosition.every(Number.isFinite);
+    if(anchored){
+      markerWorld.fromArray(anchor.localPosition);
+      anchorMesh.localToWorld(markerWorld);
+    }else{
+      markerWorld.fromArray(p);
+      modelGroup.localToWorld(markerWorld);
+    }
     projectedPoint.copy(markerWorld).project(camera);
     const onscreen=projectedPoint.z>-1&&projectedPoint.z<1&&Math.abs(projectedPoint.x)<=1&&Math.abs(projectedPoint.y)<=1;
     let facing=true;
@@ -228,8 +254,8 @@ function frame(){
     const visible=Boolean(model)&&onscreen&&facing;
     marker.classList.toggle('offscreen',!visible);
     if(visible){
-      marker.style.left=(projectedPoint.x*.5+.5)*w+'px';
-      marker.style.top=(-projectedPoint.y*.5+.5)*h+'px';
+      marker.style.left=offsetX+(projectedPoint.x*.5+.5)*w+'px';
+      marker.style.top=offsetY+(-projectedPoint.y*.5+.5)*h+'px';
     }
   }
   renderer.render(scene,camera);

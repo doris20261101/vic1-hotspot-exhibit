@@ -1,40 +1,10 @@
-// VIC1: configured OBJ + interactive RTI + micro-CT viewer.
+// VIC1 publicly deployed configuration. The index.html also contains safe URL fallbacks.
+// Both normal and ?edit=1 use this same configuration.
 window.VIC1_CONFIG = {
   title: 'VIC1 · HMS Victory',
   subtitle: 'Explore surface details, interactive RTI and internal micro-CT.',
   objUrl: 'https://pub-e39fee6f3f244227a4840cf2fb01d645.r2.dev/Model_3.obj',
   rtiViewerUrl: 'https://vic1-rti-viewer.vercel.app/',
   ctViewerUrl: 'https://historic-timber-ct-viewer-j4m8.vercel.app/',
-  hotspots: [
-  {
-    "title": "Historic surface coating",
-    "note": "A dark surface layer was observed on part of VIC1. Its composition may match a historic protective coating. Reflectance Transformation Imaging allows the surface texture and boundaries of this layer to be examined under adjustable lighting.",
-    "media": "RTI_5",
-    "position": [
-      0.23629,
-      1.26704,
-      1.0063
-    ]
-  }
-  {
-    "title": "Historic surface coating",
-    "note": "A dark surface layer was observed on part of VIC1. Its composition may match a historic protective coating. Reflectance Transformation Imaging allows the surface texture and boundaries of this layer to be examined under adjustable lighting.",
-    "media": "RTI_5",
-    "position": [
-      0.23629,
-      1.26704,
-      1.0063
-    ]
-  },
-  {
-    "title": "Internal deterioration",
-    "note": "Micro-CT reveals internal cracks, voids and areas of material loss that are not fully apparent from the timber surface, showing how damage extends beyond the exposed surface.\nThe RTI of cross-section reveals this deterioration extending into the timber. Micro-CT provides a more detailed view of internal cracks and material loss,",
-    "media": "RTI_2",
-    "position": [
-      -0.52076,
-      1.07052,
-      -1.18112
-    ]
-  }
-]
+  hotspots: []
 };

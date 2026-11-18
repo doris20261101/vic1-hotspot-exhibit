@@ -1,26 +1,15 @@
-# VIC1 Historic Timber Explorer — Hotspot images
+# VIC1 Hotspot media options — corrected build
 
-This version is based on the complete reset website and keeps the same 3D OBJ loading, RTI/CT links, visitor/curator mode, and hotspot visibility logic.
+This build preserves the OBJ loader, images, hotspot occlusion, editor and published hotspot behavior.
 
-## Upload / replace
+**Default media options**:
+- Outboard Surface · Interactive RTI (RTI_5)
+- Inboard Surface · Interactive RTI (RTI_2)
+- Micro-CT Viewer · Internal degradation
+- Image and notes only
 
-Upload **index.html** and **config.js** to the root of your existing GitHub website repository and commit. `config.js` includes the same confirmed VIC1 URLs with an empty `hotspots` array. If you already have published hotspot data you want to keep, replace only `index.html` instead.
+Both `index.html` and `config.js` are included. If your existing config.js contains published hotspots, **keep your existing config.js** and replace **only `index.html`**. If restarting from zero, upload both files.
 
-## Add a hotspot with an image
+Visit `?edit=1`, open Curator tools, then check for `v2026.11.18 · four media options` and all four options in the Default media dropdown. If not visible, check your GitHub commit and Vercel Production Deployment, then hard-refresh.
 
-1. Open `https://YOUR-SITE.vercel.app/?edit=1`.
-2. Enable **Place hotspot**, click a point on the timber, fill in title, note, and choose default media.
-3. Fill **Image URL** with a direct publicly accessible HTTPS image link (not a cloud preview or sharing page). Optionally add **Image caption / credit**.
-4. Click **Save hotspot**, then **Copy hotspot JSON**.
-5. In GitHub edit `config.js`, replace `hotspots: []` with `hotspots: [ ...your copied hotspot objects... ]`. Commit and let Vercel deploy.
-6. Test in an incognito window without `?edit=1`.
-
-## Image storage
-
-For the most reliable results, add a folder called `images` in the same GitHub repository and upload JPG, PNG or WebP images there. For a file `images/vic1_sem.jpg`, enter `./images/vic1_sem.jpg` in the editor. Image filenames are case sensitive. Alternatively, direct public Cloudflare R2 HTTPS image URLs are supported. External image servers can prevent hotlinking.
-
-Each hotspot can show **one image plus its research note and RTI/CT view**. For image-only hotspots set Default media to **Notes only**. Images should be resized for the web before uploading. The original scientific TIFFs remain your archival files.
-
-`?edit=1` only hides/shows authoring controls; it is *not authentication*. Editing in the browser saves a local draft; publishing still requires committing the generated JSON to GitHub.
-
-No change to 3D model loader was made in this version.
+Save Hotspot, Copy hotspot JSON, paste into config.js `hotspots: [...]`, commit, deploy, and test a regular/incognito URL.

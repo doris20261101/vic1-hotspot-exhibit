@@ -1,22 +1,20 @@
-# VIC1 two-sided RTI viewer
-Deploy `index.html` alone to the existing GitHub repository powering https://vic1-rti-viewer.vercel.app/.
-- Outboard Surface: RTI_5, `?side=RTI_5`
-- Inboard Surface: RTI_2, `?side=RTI_2`
-- RTI_1 has been removed. No MP4 animations.
-- Both normal and albedo images are embedded in `index.html`.
-- The labels indicate user-provided orientation, not inferred from the images.
+# VIC1 Hotspots — public display + curator-only editing interface
 
-# Optional matching 3D hotspot site
-The second ZIP contains an updated `index.html` plus `config.js` for the 3D OBJ main site.
-In Curator tools, select the hotspot's correct RTI in the 'Default media' menu. 
-Place the Inboard hotspot on the internal degraded region of the 3D OBJ, and the Outboard hotspot at the surface coating.
-Actual 3D positions cannot be determined from the 2D image alone.
-After saving, Copy hotspot JSON and paste it into config.js hotspots array.
-Existing previously saved hotspots require reselecting/remaking if their saved media values were different.
+## Update your existing GitHub repository
+1. Replace **index.html only**. Keep your own **config.js** as-is: it contains your OBJ, RTI, CT URLs and published hotspot coordinates.
+2. Commit and wait for Vercel Ready.
+3. Public URL: `https://YOUR-SITE.vercel.app/` — no editing controls. Published hotspots from config.js only.
+4. Editor URL: `https://YOUR-SITE.vercel.app/?edit=1` — Curator tools and Place hotspot appear.
 
-## Hotspots and back-face hiding
-This release corrects the floating/see-through hotspot issue. Marker positions are recalculated from saved 3D coordinates on every frame; a camera-to-marker ray is used to hide a marker when the timber surface blocks it. Occlusion is evaluated approximately 10 times per second to reduce the load on large OBJ meshes. Existing `config.js` hotspot JSON does not need to be changed.
+## Publish hotspots so incognito visitors can see them
+1. At `?edit=1`, create or adjust hotspots, then click Copy hotspot JSON.
+2. Edit `config.js` on GitHub. Replace the ENTIRE `hotspots: [...]` value with the copied array, keeping all other configuration untouched. Do not paste the array inside another pair of brackets.
+3. Commit. Wait for Vercel Ready.
+4. Open the public URL in an incognito window, without `?edit=1`. The published hotspots appear once the model has loaded and their locations are visible.
+5. If your editor still shows an older draft, click **Clear saved browser hotspots** in editor mode to load the newly published array from config.js. Copy your draft first if you still need it.
 
-**Update:** Replace `index.html` in your 3D website repository. Keep the existing `config.js` if it already contains your saved hotspots. If uploading all three files instead, first copy your existing hotspot array into the new `config.js`, otherwise you'll overwrite it with `[]`. After Vercel redeploys, hard-refresh the 3D page. The RTI Viewer repository does not need any changes.
-
-For old hotspots placed on the wrong surface, use Curator tools to remove them and recreate at the correct position. If a model has transparent gaps, markers may remain visible through an actual hole.
+### Diagnostics
+- If there are 0 published hotspots, the public page will correctly show none. The editor shows counts for both published and local draft hotspots.
+- If the public page still has no visible markers, check that the public config.js contains real positions, that the model loads, that Vercel deployed the newest commit, and rotate the model to the correct side (occluded hotspots hide behind timber).
+- The `?edit=1` switch **is not real access control**. Anyone who knows the URL can see editing controls, and local edits cannot modify GitHub/other visitors' data without separately publishing the JSON. For truly restricted editorial access, add authentication or deploy a separate private editing site.
+- To avoid accidentally sharing your local editing URL, share the URL without `?edit=1`.

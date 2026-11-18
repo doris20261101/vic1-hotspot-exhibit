@@ -8,12 +8,12 @@ window.VIC1_CONFIG = {
   hotspots: [[
   {
     "title": "Historic surface coating",
-    "note": "A dark surface layer was observed on part of VIC1. Its composition may be consistent with a historic protective coating. Reflectance Transformation Imaging allows the surface texture and boundaries of this layer to be examined under adjustable lighting. Copy annotation",
+    "note": "A dark surface layer was observed on part of VIC1. Its composition may match a historic protective coating. Reflectance Transformation Imaging allows the surface texture and boundaries of this layer to be examined under adjustable lighting.",
     "media": "RTI_5",
     "position": [
-      0.75344,
-      1.61659,
-      1.00452
+      0.58994,
+      1.22229,
+      1.01252
     ]
   }
 ]]

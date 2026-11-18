@@ -10,15 +10,14 @@
 <script src="./config.js"></script>
 </head>
 <body><header><h1 id="title">VIC1 · HMS Victory</h1><p id="subtitle">Explore historical timber across imaging methods.</p></header>
-<main><section class="panel"><div class="viewer" id="viewport"><div id="loading" class="overlay">Enter your public OBJ URL in config.js to begin.</div></div><div class="toolbar"><button id="reset">Reset camera</button><button id="place" disabled hidden>Place hotspot: OFF</button><button id="ct">Open CT Viewer ↗</button><button id="showEditor" hidden>Curator tools</button></div><p class="small" style="margin:0 14px 14px">Drag to rotate · Scroll to zoom · Click a marker to read an annotation. </p></section>
+<main><section class="panel"><div class="viewer" id="viewport"><div id="loading" class="overlay">Enter your public OBJ URL in config.js to begin.</div></div><div class="toolbar"><button id="reset">Reset camera</button><button id="place" disabled hidden>Place hotspot: OFF</button><button id="ct">Open CT Viewer ↗</button><button id="showEditor" hidden>Curator tools</button></div><p class="small" style="margin:0 14px 14px">Drag to rotate · Scroll to zoom · Click a marker to read an annotation. Curator mode: click the timber surface to place a marker.</p></section>
 <aside class="panel"><h2 id="detailTitle">Choose a hotspot</h2><p id="detailText">Select a marker to see its associated RTI surface or micro-CT viewer.</p><section id="interactiveSection"><div id="rtiFrameHolder"></div><p id="interactiveEmpty" class="small">Set rtiViewerUrl to your public interactive RTI viewer page in config.js.</p></section><section id="ctSection" hidden><iframe id="ctFrame" title="Interactive micro-CT viewer" loading="lazy"></iframe><p class="small">If the CT viewer does not appear here, open it in a new tab. Some sites restrict embedded viewers.</p><p><a id="ctExternal" class="button" target="_blank" rel="noopener noreferrer">Open full CT Viewer ↗</a></p></section><p class="small">Interactive RTI: drag the light source to explore surface textures. The separate CT Viewer opens with the button beside the 3D model.</p></aside></main>
-<section id="editor" class="editor" hidden><h2>Curator tools · hotspots</h2><p class="status" id="publishStatus">The public website displays the published hotspots in config.js. Draft edits in this browser are not public until published.</p><p class="small">Enable placement, click the timber surface, then complete these fields. Marker positions are stored relative to the auto-scaled model. Replacing the OBJ with different geometry may shift markers.</p><div class="field-2"><div><label for="hotName">Hotspot title</label><input id="hotName" placeholder="e.g. Surface coating or Internal degradation"></div><div><label for="hotType">Default media</label><select id="hotType"><option value="RTI_5">Outboard Surface — RTI_5 (surface coating)</option><option value="RTI_2">Inboard Surface — RTI_2 (degraded region)</option><option value="CT">Micro-CT Viewer — internal degradation</option><option value="notes">Notes only</option></select></div></div><label for="hotNote">Research note</label><textarea id="hotNote" rows="3" placeholder="Describe the observed surface feature and interpretation separately"></textarea><p id="coordStatus" class="status">Click Place hotspot, then select a position on the model.</p><div class="row"><button id="saveHotspot" disabled>Save hotspot</button><button id="copyHotspots">Copy hotspot JSON</button><button id="clearLocal">Clear saved browser hotspots</button></div><p class="small">To publish to everyone: copy JSON, paste it as the <code>hotspots</code> array in <code>config.js</code>, Commit, and redeploy. Changes made here alone stay in this browser.</p><ul id="hotspotList" class="hotspot-list"></ul></section>
+<section id="editor" class="editor" hidden><h2>Curator tools · hotspots</h2><p class="status" id="publishStatus">Published hotspots load from config.js.</p><p class="small">Enable placement, click the timber surface, then complete these fields. Marker positions are stored relative to the auto-scaled model. Replacing the OBJ with different geometry may shift markers.</p><div class="field-2"><div><label for="hotName">Hotspot title</label><input id="hotName" placeholder="e.g. Surface coating or Internal degradation"></div><div><label for="hotType">Default media</label><select id="hotType"><option value="RTI_5">Outboard Surface — RTI_5 (surface coating)</option><option value="RTI_2">Inboard Surface — RTI_2 (degraded region)</option><option value="CT">Micro-CT Viewer — internal degradation</option><option value="notes">Notes only</option></select></div></div><label for="hotNote">Research note</label><textarea id="hotNote" rows="3" placeholder="Describe the observed surface feature and interpretation separately"></textarea><p id="coordStatus" class="status">Click Place hotspot, then select a position on the model.</p><div class="row"><button id="saveHotspot" disabled>Save hotspot</button><button id="copyHotspots">Copy hotspot JSON</button><button id="clearLocal">Clear saved browser hotspots</button></div><p class="small">To publish to everyone: copy JSON, paste it as the <code>hotspots</code> array in <code>config.js</code>, Commit, and redeploy. Changes made here alone stay in this browser.</p><ul id="hotspotList" class="hotspot-list"></ul></section>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 const cfg=window.VIC1_CONFIG||{}, $=id=>document.getElementById(id);
-// Editing is an unprotected convenience switch, not authentication.
 const editorMode=new URLSearchParams(location.search).get('edit')==='1';
 $('place').hidden=!editorMode; $('showEditor').hidden=!editorMode;
 $('title').textContent=cfg.title||'VIC1';$('subtitle').textContent=cfg.subtitle||'';
@@ -31,12 +30,7 @@ const modelGroup=new THREE.Group();scene.add(modelGroup);let model=null;const ra
 const occlusionRaycaster=new THREE.Raycaster();
 const markerWorld=new THREE.Vector3(),markerRayDirection=new THREE.Vector3(),projectedPoint=new THREE.Vector3();
 let placing=false,pending=null;
-const key='vic1-hotspots-local-v1';
-const publishedHotspots=Array.isArray(cfg.hotspots)?cfg.hotspots:[];
-let hotspots=publishedHotspots.map(h=>({...h}));
-// Only editor mode may read a private local draft; visitors always see published content.
-if(editorMode){try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(cached))hotspots=cached;}catch{}}
-
+const key='vic1-hotspots-local-v1';const publishedHotspots=Array.isArray(cfg.hotspots)?cfg.hotspots:[];let hotspots=publishedHotspots.map(h=>({...h}));if(editorMode){try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(cached))hotspots=cached;}catch{}}
 let markers=[];
 function setStatus(msg,error=false){$('loading').textContent=msg;$('loading').classList.toggle('error',error);}
 function size(){let w=vp.clientWidth,h=vp.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}window.addEventListener('resize',size);size();
@@ -71,13 +65,13 @@ function selectHotspot(h){
     showInteractiveRTI(h.media==='RTI_2'?'RTI_2':'RTI_5');
   }
 }
-function refreshMarkers(){if(editorMode){$('publishStatus').textContent=`Published: ${publishedHotspots.length} hotspot(s) in config.js · Current editor draft: ${hotspots.length}. To publish: Copy hotspot JSON, replace the complete hotspots array in config.js, then Commit.`;}for(const el of markers)el.remove();markers=[];$('hotspotList').replaceChildren();hotspots.forEach((h,i)=>{const marker=document.createElement('button');marker.className='marker';marker.textContent=String(i+1);marker.title=h.title||'Hotspot';marker.setAttribute('aria-label',h.title||`Hotspot ${i+1}`);marker.onclick=()=>selectHotspot(h);vp.append(marker);marker.hotspot=h;markers.push(marker);const li=document.createElement('li');const label=document.createElement('span');label.textContent=`${i+1}. ${h.title||'Hotspot'}`;if(editorMode){const del=document.createElement('button');del.textContent='Remove';del.onclick=()=>{hotspots.splice(i,1);saveLocal();refreshMarkers()};li.append(label,del);}$('hotspotList').append(li)});}
+function refreshMarkers(){if(editorMode)$('publishStatus').textContent=`Published: ${publishedHotspots.length} · Current draft: ${hotspots.length}`;for(const el of markers)el.remove();markers=[];$('hotspotList').replaceChildren();hotspots.forEach((h,i)=>{const marker=document.createElement('button');marker.className='marker';marker.textContent=String(i+1);marker.title=h.title||'Hotspot';marker.setAttribute('aria-label',h.title||`Hotspot ${i+1}`);marker.onclick=()=>selectHotspot(h);vp.append(marker);marker.hotspot=h;markers.push(marker);const li=document.createElement('li');const label=document.createElement('span');label.textContent=`${i+1}. ${h.title||'Hotspot'}`;if(editorMode){const del=document.createElement('button');del.textContent='Remove';del.onclick=()=>{hotspots.splice(i,1);saveLocal();refreshMarkers()};li.append(label,del);}else li.append(label);$('hotspotList').append(li)});}
 function saveLocal(){try{localStorage.setItem(key,JSON.stringify(hotspots))}catch{}}
 $('showEditor').onclick=()=>{if(!editorMode)return;$('editor').hidden=!$('editor').hidden;if(!$('editor').hidden)$('editor').scrollIntoView({behavior:'smooth',block:'nearest'});};
 $('place').onclick=()=>{if(!editorMode)return;placing=!placing;$('place').classList.toggle('active',placing);$('place').textContent=`Place hotspot: ${placing?'ON':'OFF'}`};
 $('saveHotspot').onclick=()=>{if(!editorMode)return;if(!pending)return;hotspots.push({title:$('hotName').value.trim()||`Hotspot ${hotspots.length+1}`,note:$('hotNote').value.trim(),media:$('hotType').value,position:pending.toArray().map(x=>Number(x.toFixed(5)))});saveLocal();refreshMarkers();pending=null;$('saveHotspot').disabled=true;$('coordStatus').textContent='Saved. Select another position or export JSON.'};
 $('copyHotspots').onclick=async()=>{if(!editorMode)return;const txt=JSON.stringify(hotspots,null,2);try{await navigator.clipboard.writeText(txt);$('coordStatus').textContent='Copied JSON. Paste into config.js hotspots.';}catch{$('coordStatus').textContent=txt}};
-$('clearLocal').onclick=()=>{if(!editorMode)return;localStorage.removeItem(key);hotspots=publishedHotspots.map(h=>({...h}));refreshMarkers();$('coordStatus').textContent='Local draft cleared; showing published config.js hotspots.'};
+$('clearLocal').onclick=()=>{if(!editorMode)return;localStorage.removeItem(key);hotspots=publishedHotspots.map(h=>({...h}));refreshMarkers();$('coordStatus').textContent='Local markers cleared.'};
 function geometryReport(obj){
   let meshes=0, triangles=0, vertices=0, valid=0, invalid=0;
   const bounds=new THREE.Box3();
@@ -174,7 +168,7 @@ function frame(time=0){
   if(refreshDepth)lastOcclusionCheck=time;
   for(let i=0;i<markers.length;i++){
     const marker=markers[i],p=marker.hotspot.position;
-    if(!Array.isArray(p)||p.length!==3||!p.every(v=>typeof v==='number'&&Number.isFinite(v))){
+    if(!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)){
       marker.classList.add('offscreen');continue;
     }
     markerWorld.set(...p);

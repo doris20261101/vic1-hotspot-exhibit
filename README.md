@@ -1,20 +1,12 @@
-# VIC1 Hotspots — public display + curator-only editing interface
+# VIC1 stable OBJ + public hotspots + editor mode
 
-## Update your existing GitHub repository
-1. Replace **index.html only**. Keep your own **config.js** as-is: it contains your OBJ, RTI, CT URLs and published hotspot coordinates.
-2. Commit and wait for Vercel Ready.
-3. Public URL: `https://YOUR-SITE.vercel.app/` — no editing controls. Published hotspots from config.js only.
-4. Editor URL: `https://YOUR-SITE.vercel.app/?edit=1` — Curator tools and Place hotspot appear.
+This edition is patched directly from the previous CT-hotspot working `index.html` and deliberately leaves all Three.js/OBJ-loading, geometry diagnostics, camera, scaling, and occlusion logic unchanged.
 
-## Publish hotspots so incognito visitors can see them
-1. At `?edit=1`, create or adjust hotspots, then click Copy hotspot JSON.
-2. Edit `config.js` on GitHub. Replace the ENTIRE `hotspots: [...]` value with the copied array, keeping all other configuration untouched. Do not paste the array inside another pair of brackets.
-3. Commit. Wait for Vercel Ready.
-4. Open the public URL in an incognito window, without `?edit=1`. The published hotspots appear once the model has loaded and their locations are visible.
-5. If your editor still shows an older draft, click **Clear saved browser hotspots** in editor mode to load the newly published array from config.js. Copy your draft first if you still need it.
+**Upload ONLY `index.html`** to your existing main-site GitHub repository. **Do not replace `config.js`**. Make sure `config.js` exists in the repository root alongside `index.html`.
 
-### Diagnostics
-- If there are 0 published hotspots, the public page will correctly show none. The editor shows counts for both published and local draft hotspots.
-- If the public page still has no visible markers, check that the public config.js contains real positions, that the model loads, that Vercel deployed the newest commit, and rotate the model to the correct side (occluded hotspots hide behind timber).
-- The `?edit=1` switch **is not real access control**. Anyone who knows the URL can see editing controls, and local edits cannot modify GitHub/other visitors' data without separately publishing the JSON. For truly restricted editorial access, add authentication or deploy a separate private editing site.
-- To avoid accidentally sharing your local editing URL, share the URL without `?edit=1`.
+Visitors: `https://YOUR-SITE.vercel.app/` — read-only published `config.js` hotspots.
+Curator: `https://YOUR-SITE.vercel.app/?edit=1` — edit local draft, copy JSON, publish by replacing `hotspots: [...]` in GitHub `config.js`. This is not authentication and does not restrict access to the source code.
+
+If the model is blank, copy the exact loading/error message shown over the model area; open browser developer tools Console for more details. A model failure can also be a public OBJ URL/CORS/large-file download problem.
+
+Existing saved browser drafts override public hotspots ONLY when using `?edit=1`; use Clear saved browser hotspots to return to the published config if needed.
